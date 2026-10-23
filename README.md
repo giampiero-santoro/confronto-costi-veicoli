@@ -7,6 +7,7 @@ Applicazione web per confrontare consumi e costi di percorrenza tra veicoli a be
 - Confronto di 2 o più veicoli, con aggiunta e rimozione
 - Consumo in l/100 km, km/l, kg/100 km, km/kg, kWh/100 km o km/kWh, con conversione automatica nell'altra unità
 - Distanza singola oppure km giornalieri, settimanali, mensili o annui
+- Per i veicoli elettrici: capacità della batteria e autonomia stimata in base al consumo
 - Consumo totale, spesa totale e costo al km
 - Veicolo più economico e più costoso in evidenza
 - Differenze di spesa tra ogni coppia di veicoli, anche per giorno, settimana, mese e anno

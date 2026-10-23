@@ -74,6 +74,7 @@ tr.min .bar i{background:var(--good)}tr.max .bar i{background:var(--bad)}
 .u{display:block;font-size:.75rem;color:var(--muted);font-weight:400}
 .eq{font-size:.85rem;color:var(--accent);min-height:1.2em;margin-top:-4px}
 .pos{color:var(--bad);font-weight:600}.neg{color:var(--good);font-weight:600}.zero{color:var(--muted)}
+.range{font-weight:600;color:var(--good);min-height:1.2em;margin-top:-4px}
 .hint{font-size:.8rem;color:var(--muted);margin-top:10px}
 footer{margin-top:36px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.85rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 footer img{width:32px;height:32px;border-radius:50%;background:#fff;padding:2px;border:1px solid var(--line)}
@@ -149,7 +150,7 @@ const FUELS = {
   gpl:{label:"GPL",qty:"l",price:0.75,units:["l100","kml"],cons:8.5},
   metano:{label:"Metano",qty:"kg",price:1.50,units:["kg100","kmkg"],cons:4.5},
   ibrido:{label:"Ibrido (benzina)",qty:"l",price:1.80,units:["l100","kml"],cons:4.5},
-  elettrico:{label:"Elettrico",qty:"kWh",price:0.30,units:["kwh100","kmkwh"],cons:16}
+  elettrico:{label:"Elettrico",qty:"kWh",price:0.30,units:["kwh100","kmkwh"],cons:16,cap:60}
 };
 const DEFAULTS = [
   {name:"Auto a benzina",fuel:"benzina"},
@@ -164,7 +165,7 @@ const $ = id => document.getElementById(id);
 
 function makeVehicle(name, fuel){
   const f = FUELS[fuel];
-  return {id:nextId++, name, fuel, unit:f.units[0], cons:f.cons, price:f.price};
+  return {id:nextId++, name, fuel, unit:f.units[0], cons:f.cons, price:f.price, cap:f.cap || ""};
 }
 function loadDefaults(){
   vehicles = DEFAULTS.map(d => makeVehicle(d.name, d.fuel));
@@ -198,6 +199,7 @@ function renderVehicles(){
         <div><label class="label is-small">Unità</label><div class="select is-fullwidth"><select data-k="unit">${unitOpts}</select></div></div>
       </div>
       <div class="eq"></div>
+      ${v.fuel === "elettrico" ? `<div><label class="label is-small">Capacità batteria (kWh)</label><input class="input" data-k="cap" type="number" min="0.1" step="any" inputmode="decimal" value="${v.cap}"></div><div class="range"></div>` : ""}
       <div><label class="label is-small">Prezzo (€ per ${f.qty})</label><input class="input" data-k="price" type="number" min="0" step="any" inputmode="decimal" value="${v.price}"></div>
     </div>`;
   }).join("");
@@ -210,9 +212,16 @@ function updateEquiv(){
     const el = document.querySelector('.veh[data-id="' + v.id + '"] .eq');
     if(!el) return;
     const c = parseFloat(v.cons);
-    if(!(c > 0)){ el.textContent = ""; return; }
+    if(!(c > 0)){ el.textContent = ""; const r0 = document.querySelector('.veh[data-id="' + v.id + '"] .range'); if(r0) r0.textContent = ""; return; }
     const other = FUELS[v.fuel].units.find(x => x !== v.unit);
     el.textContent = "≈ " + nf(2).format(100 / c) + " " + UNITS[other].label;
+    // Autonomia (solo elettrico): capacità batteria / consumo ogni 100 km * 100
+    const rg = document.querySelector('.veh[data-id="' + v.id + '"] .range');
+    if(rg){
+      const cap = parseFloat(v.cap);
+      const per100 = UNITS[v.unit].inv ? 100 / c : c;
+      rg.textContent = cap > 0 ? "Autonomia stimata: ≈ " + nf(0).format(cap / per100 * 100) + " km" : "";
+    }
   });
 }
 
@@ -360,7 +369,7 @@ $("vehicles").addEventListener("change", e => {
   const v = vehicles.find(x => x.id == e.target.closest(".veh").dataset.id);
   if(k === "fuel"){   // al cambio di alimentazione si riportano i valori tipici
     const f = FUELS[e.target.value];
-    Object.assign(v, {fuel:e.target.value, unit:f.units[0], cons:f.cons, price:f.price});
+    Object.assign(v, {fuel:e.target.value, unit:f.units[0], cons:f.cons, price:f.price, cap:f.cap || ""});
     renderVehicles();
   } else {
     v.unit = e.target.value;
